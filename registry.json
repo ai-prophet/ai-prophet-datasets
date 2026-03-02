@@ -27,6 +27,20 @@
           "checksum_sha256": "8206db194fc81b8ced4a1639d9b929d2bebfa22d26c0a5e19cf2b995e2584f85"
         }
       ]
+    },
+    {
+      "name": "prophet-recent",
+      "description": "A selection of recent Prophet Arena resolved tasks with outcomes <= 2",
+      "latest": "v1.0.0",
+      "versions": [
+        {
+          "version": "v1.0.0",
+          "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
+          "git_ref": "f1b4b18979281e22f9201f737ab39e68fbd6fc32",
+          "path": "datasets/prophet-recent/v1.0.0/tasks.jsonl",
+          "checksum_sha256": "66bbf6032bafe5c621a8db590aba9f31879f231c6e99b9d4a056aba86559a7e5"
+        }
+      ]
     }
   ]
 }
