@@ -1,0 +1,126 @@
+name: Dataset Registry Sync
+
+on:
+  pull_request:
+    paths:
+      - "datasets/**/*.jsonl"
+      - "registry.json"
+      - "scripts/registry_manager.py"
+      - ".github/workflows/dataset-registry-sync.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "datasets/**/*.jsonl"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  registry-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve diff range
+        id: range
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate registry suggestions
+        shell: bash
+        run: |
+          python scripts/registry_manager.py from-diff \
+            --base "${{ steps.range.outputs.base }}" \
+            --head "${{ steps.range.outputs.head }}" \
+            --registry registry.json \
+            --promote-latest \
+            --write-report .registry-report.md \
+            --write-json .registry-suggestions.json
+
+      - name: Upload registry report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-report
+          path: |
+            .registry-report.md
+            .registry-suggestions.json
+
+      - name: Comment suggestions on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- dataset-registry-bot -->';
+            const body = fs.readFileSync('.registry-report.md', 'utf8');
+            const full = `${marker}\n${body}`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 }
+            );
+
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: full,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: full,
+              });
+            }
+
+      - name: Apply registry updates on main push
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          python scripts/registry_manager.py from-diff \
+            --base "${{ steps.range.outputs.base }}" \
+            --head "${{ steps.range.outputs.head }}" \
+            --registry registry.json \
+            --promote-latest \
+            --strict \
+            --apply
+
+      - name: Commit registry changes
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          if git diff --quiet -- registry.json; then
+            echo "No registry changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add registry.json
+          git commit -m "chore: auto-update registry for new datasets"
+          git push
