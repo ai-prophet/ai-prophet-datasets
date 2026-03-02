@@ -99,8 +99,8 @@ def _validate_jsonl(path: Path) -> None:
             errors.append(f"line {line_no}: missing/invalid 'outcomes' list")
         else:
             cleaned = [x for x in outcomes if isinstance(x, str) and x.strip()]
-            if len(cleaned) < 2:
-                errors.append(f"line {line_no}: 'outcomes' needs at least 2 non-empty strings")
+            if len(cleaned) < 1:
+                errors.append(f"line {line_no}: 'outcomes' needs at least 1 non-empty string")
 
         task_id = payload.get("task_id")
         if task_id is not None and (not isinstance(task_id, str) or not task_id.strip()):
