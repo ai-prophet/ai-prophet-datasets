@@ -3,9 +3,9 @@
     {
       "name": "dummy",
       "version": "2026-03-02",
-      "description": "dummy (2026-03-02)",
+      "description": "dummy dataset (2026-03-02)",
       "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
-      "git_ref": "main",
+      "git_ref": "f5cf40daebacb7999190a1bdd3ee909a1c4bdf9d",
       "path": "datasets/dummy/2026-03-02/tasks.jsonl",
       "checksum_sha256": "761e361345aa17059697ec9dae16fa8849ae6631f3f425f059a22a5260217107"
     },
@@ -14,7 +14,7 @@
       "version": "latest",
       "description": "Latest dummy",
       "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
-      "git_ref": "main",
+      "git_ref": "f5cf40daebacb7999190a1bdd3ee909a1c4bdf9d",
       "path": "datasets/dummy/2026-03-02/tasks.jsonl",
       "checksum_sha256": "761e361345aa17059697ec9dae16fa8849ae6631f3f425f059a22a5260217107"
     }
