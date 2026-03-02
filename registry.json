@@ -2,30 +2,24 @@
   "datasets": [
     {
       "name": "dummy",
-      "version": "2026-03-01",
-      "description": "dummy (2026-03-01)",
-      "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
-      "git_ref": "c83bf47163ff169d75a406646ec2f279dde52634",
-      "path": "datasets/dummy/2026-03-01/tasks.jsonl",
-      "checksum_sha256": "f631b4e11661437c28bab71e356d58ef03687f57bf5c300b2ca72831c49d942f"
-    },
-    {
-      "name": "dummy",
-      "version": "2026-03-02",
-      "description": "dummy (2026-03-02)",
-      "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
-      "git_ref": "f76960b1a32e0adfbf6018d5fab65a8e0ef5e644",
-      "path": "datasets/dummy/2026-03-02/tasks.jsonl",
-      "checksum_sha256": "761e361345aa17059697ec9dae16fa8849ae6631f3f425f059a22a5260217107"
-    },
-    {
-      "name": "dummy",
-      "version": "latest",
-      "description": "Latest dummy",
-      "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
-      "git_ref": "c83bf47163ff169d75a406646ec2f279dde52634",
-      "path": "datasets/dummy/2026-03-01/tasks.jsonl",
-      "checksum_sha256": "f631b4e11661437c28bab71e356d58ef03687f57bf5c300b2ca72831c49d942f"
+      "description": "Dummy benchmark dataset",
+      "latest": "2026-03-02",
+      "versions": [
+        {
+          "version": "2026-03-01",
+          "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
+          "git_ref": "c83bf47163ff169d75a406646ec2f279dde52634",
+          "path": "datasets/dummy/2026-03-01/tasks.jsonl",
+          "checksum_sha256": "f631b4e11661437c28bab71e356d58ef03687f57bf5c300b2ca72831c49d942f"
+        },
+        {
+          "version": "2026-03-02",
+          "git_url": "https://github.com/ai-prophet/ai-prophet-datasets.git",
+          "git_ref": "f76960b1a32e0adfbf6018d5fab65a8e0ef5e644",
+          "path": "datasets/dummy/2026-03-02/tasks.jsonl",
+          "checksum_sha256": "761e361345aa17059697ec9dae16fa8849ae6631f3f425f059a22a5260217107"
+        }
+      ]
     }
   ]
 }

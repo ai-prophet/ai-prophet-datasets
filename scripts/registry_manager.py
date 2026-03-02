@@ -19,20 +19,23 @@ DATASET_PATH_RE = re.compile(
 
 
 @dataclass(frozen=True)
-class DatasetSuggestion:
-    path: str
+class DatasetMetadata:
+    description: str
+    latest: str
+
+
+@dataclass(frozen=True)
+class DatasetVersionSuggestion:
     name: str
     version: str
-    description: str
     git_url: str
     git_ref: str
+    path: str
     checksum_sha256: str
 
-    def to_registry_entry(self) -> dict[str, str]:
+    def to_version_entry(self) -> dict[str, str]:
         return {
-            "name": self.name,
             "version": self.version,
-            "description": self.description,
             "git_url": self.git_url,
             "git_ref": self.git_ref,
             "path": self.path,
@@ -125,46 +128,143 @@ def _parse_dataset_path(path: str) -> tuple[str, str]:
     return match.group("name"), match.group("version")
 
 
-def _load_registry(path: Path) -> tuple[list[dict[str, Any]], bool]:
+def _load_metadata(name: str) -> DatasetMetadata:
+    metadata_path = Path("datasets") / name / "metadata.json"
+    if not metadata_path.exists():
+        raise RegistryError(
+            f"Missing metadata file for dataset '{name}': {metadata_path} "
+            "(required keys: description, latest)"
+        )
+
+    try:
+        payload = json.loads(metadata_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise RegistryError(f"Invalid JSON in {metadata_path}: {exc}") from exc
+
+    if not isinstance(payload, dict):
+        raise RegistryError(f"Metadata at {metadata_path} must be a JSON object")
+
+    description = payload.get("description")
+    latest = payload.get("latest")
+
+    if not isinstance(description, str) or not description.strip():
+        raise RegistryError(f"{metadata_path}: 'description' must be a non-empty string")
+    if not isinstance(latest, str) or not latest.strip():
+        raise RegistryError(f"{metadata_path}: 'latest' must be a non-empty string")
+
+    latest_version_dir = Path("datasets") / name / latest
+    if not latest_version_dir.is_dir():
+        raise RegistryError(
+            f"{metadata_path}: latest='{latest}' is not a valid dataset version folder under "
+            f"datasets/{name}/"
+        )
+
+    return DatasetMetadata(description=description.strip(), latest=latest.strip())
+
+
+def _load_registry(path: Path) -> list[dict[str, Any]]:
     if not path.exists() or not path.read_text().strip():
-        return [], True
+        return []
 
     payload = json.loads(path.read_text())
-    if isinstance(payload, dict):
-        datasets = payload.get("datasets")
-        if not isinstance(datasets, list):
-            raise RegistryError("registry.json dict payload must contain list key 'datasets'")
-        return datasets, True
-    if isinstance(payload, list):
-        return payload, False
-    raise RegistryError("registry.json must be either a list or an object with a 'datasets' list")
+    data = payload.get("datasets") if isinstance(payload, dict) else payload
+
+    if not isinstance(data, list):
+        raise RegistryError("registry.json must contain a list at top-level or at key 'datasets'")
+
+    if data and isinstance(data[0], dict) and "versions" in data[0]:
+        return data
+
+    # Legacy flat format conversion.
+    grouped: dict[str, dict[str, Any]] = {}
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+
+        name = item.get("name")
+        version = item.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            continue
+        if version == "latest":
+            continue
+
+        dataset = grouped.setdefault(
+            name,
+            {
+                "name": name,
+                "description": item.get("description", "") if isinstance(item.get("description"), str) else "",
+                "latest": None,
+                "versions": [],
+            },
+        )
+
+        dataset["versions"].append(
+            {
+                "version": version,
+                "git_url": item.get("git_url", ""),
+                "git_ref": item.get("git_ref", ""),
+                "path": item.get("path", ""),
+                "checksum_sha256": item.get("checksum_sha256"),
+            }
+        )
+
+    return sorted(grouped.values(), key=lambda d: d["name"])
 
 
-def _sort_registry(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    def _sort_key(entry: dict[str, Any]) -> tuple[str, int, str]:
-        name = str(entry.get("name", ""))
-        version = str(entry.get("version", ""))
-        is_latest = 1 if version == "latest" else 0
-        return name, is_latest, version
-
-    return sorted(entries, key=_sort_key)
+def _sort_versions(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(entries, key=lambda x: str(x.get("version", "")))
 
 
-def _save_registry(path: Path, entries: list[dict[str, Any]], use_wrapper: bool) -> None:
-    sorted_entries = _sort_registry(entries)
-    payload: Any = {"datasets": sorted_entries} if use_wrapper else sorted_entries
+def _save_registry(path: Path, datasets: list[dict[str, Any]]) -> None:
+    normalized: list[dict[str, Any]] = []
+    for dataset in sorted(datasets, key=lambda d: str(d.get("name", ""))):
+        copy = dict(dataset)
+        versions = copy.get("versions")
+        if not isinstance(versions, list):
+            versions = []
+        copy["versions"] = _sort_versions(versions)
+        normalized.append(copy)
+
+    payload: dict[str, Any] = {"datasets": normalized}
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n")
 
 
-def _upsert(entries: list[dict[str, Any]], new_entry: dict[str, Any]) -> None:
-    name = new_entry["name"]
-    version = new_entry["version"]
+def _upsert_dataset_version(
+    datasets: list[dict[str, Any]],
+    *,
+    suggestion: DatasetVersionSuggestion,
+    metadata: DatasetMetadata,
+) -> None:
+    target: dict[str, Any] | None = None
+    for dataset in datasets:
+        if dataset.get("name") == suggestion.name:
+            target = dataset
+            break
 
-    for i, existing in enumerate(entries):
-        if existing.get("name") == name and existing.get("version") == version:
-            entries[i] = new_entry
-            return
-    entries.append(new_entry)
+    if target is None:
+        target = {
+            "name": suggestion.name,
+            "description": metadata.description,
+            "latest": metadata.latest,
+            "versions": [],
+        }
+        datasets.append(target)
+
+    target["description"] = metadata.description
+    target["latest"] = metadata.latest
+
+    versions = target.get("versions")
+    if not isinstance(versions, list):
+        versions = []
+        target["versions"] = versions
+
+    entry = suggestion.to_version_entry()
+    for i, existing in enumerate(versions):
+        if existing.get("version") == suggestion.version:
+            versions[i] = entry
+            break
+    else:
+        versions.append(entry)
 
 
 def _added_jsonl_files(base: str, head: str) -> list[str]:
@@ -193,30 +293,20 @@ def _build_suggestion(
     dataset_path: str,
     git_ref: str,
     git_url: str,
-    description: str | None,
-    name: str | None,
-    version: str | None,
-) -> DatasetSuggestion:
+) -> DatasetVersionSuggestion:
     path_obj = Path(dataset_path)
     if not path_obj.exists():
         raise RegistryError(f"Dataset path not found: {dataset_path}")
 
     _validate_jsonl(path_obj)
+    name, version = _parse_dataset_path(dataset_path)
 
-    if name is None or version is None:
-        inferred_name, inferred_version = _parse_dataset_path(dataset_path)
-    else:
-        inferred_name, inferred_version = name, version
-
-    desc = description or f"{inferred_name} ({inferred_version})"
-
-    return DatasetSuggestion(
-        path=Path(dataset_path).as_posix().lstrip("./"),
-        name=inferred_name,
-        version=inferred_version,
-        description=desc,
+    return DatasetVersionSuggestion(
+        name=name,
+        version=version,
         git_url=git_url,
         git_ref=git_ref,
+        path=Path(dataset_path).as_posix().lstrip("./"),
         checksum_sha256=_sha256(path_obj),
     )
 
@@ -225,21 +315,20 @@ def _render_report(
     *,
     base: str | None,
     head: str | None,
-    suggestions: list[DatasetSuggestion],
+    changed_datasets: list[dict[str, Any]],
     warnings: list[str],
 ) -> str:
     lines: list[str] = []
     lines.append("## Dataset Registry Bot")
     if base and head:
         lines.append(f"Diff range: `{base}..{head}`")
-    lines.append(f"Detected dataset files: **{len(suggestions)}**")
+    lines.append(f"Updated dataset groups: **{len(changed_datasets)}**")
     lines.append("")
 
-    if suggestions:
-        entries = [s.to_registry_entry() for s in suggestions]
-        lines.append("Suggested registry entries (append/upsert these):")
+    if changed_datasets:
+        lines.append("Suggested dataset blocks (upsert by `name` in `registry.json`):")
         lines.append("```json")
-        lines.append(json.dumps(entries, indent=2, ensure_ascii=True))
+        lines.append(json.dumps(changed_datasets, indent=2, ensure_ascii=True))
         lines.append("```")
         lines.append("")
 
@@ -248,10 +337,28 @@ def _render_report(
         for warning in warnings:
             lines.append(f"- {warning}")
 
-    if not suggestions and not warnings:
+    if not changed_datasets and not warnings:
         lines.append("No new dataset `.jsonl` files were detected in this diff.")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _compute_changes(
+    *,
+    registry_path: Path,
+    suggestions: list[DatasetVersionSuggestion],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    registry = _load_registry(registry_path)
+    changed_names: set[str] = set()
+
+    for suggestion in suggestions:
+        metadata = _load_metadata(suggestion.name)
+        _upsert_dataset_version(registry, suggestion=suggestion, metadata=metadata)
+        changed_names.add(suggestion.name)
+
+    changed = [item for item in registry if item.get("name") in changed_names]
+    changed = sorted(changed, key=lambda d: str(d.get("name", "")))
+    return registry, changed
 
 
 def cmd_register(args: argparse.Namespace) -> int:
@@ -264,28 +371,20 @@ def cmd_register(args: argparse.Namespace) -> int:
             dataset_path=args.dataset_path,
             git_ref=git_ref,
             git_url=git_url,
-            description=args.description,
-            name=args.name,
-            version=args.version,
+        )
+        updated_registry, changed = _compute_changes(
+            registry_path=registry_path,
+            suggestions=[suggestion],
         )
     except RegistryError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    entries, use_wrapper = _load_registry(registry_path)
-    _upsert(entries, suggestion.to_registry_entry())
-
-    if args.promote_latest:
-        latest_entry = dict(suggestion.to_registry_entry())
-        latest_entry["version"] = "latest"
-        latest_entry["description"] = f"Latest {suggestion.name}"
-        _upsert(entries, latest_entry)
-
-    _save_registry(registry_path, entries, use_wrapper)
+    _save_registry(registry_path, updated_registry)
 
     print(f"updated {registry_path} with {suggestion.name}@{suggestion.version}")
-    if args.promote_latest:
-        print(f"updated {registry_path} with {suggestion.name}@latest")
+    print("updated dataset block:")
+    print(json.dumps(changed[0], indent=2, ensure_ascii=True))
     return 0
 
 
@@ -300,7 +399,7 @@ def cmd_from_diff(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    suggestions: list[DatasetSuggestion] = []
+    suggestions: list[DatasetVersionSuggestion] = []
     for dataset_file in dataset_files:
         if not dataset_file.startswith("datasets/"):
             warnings.append(
@@ -309,38 +408,37 @@ def cmd_from_diff(args: argparse.Namespace) -> int:
             continue
 
         try:
-            suggestion = _build_suggestion(
-                dataset_path=dataset_file,
-                git_ref=args.git_ref or args.head,
-                git_url=git_url,
-                description=None,
-                name=None,
-                version=None,
+            suggestions.append(
+                _build_suggestion(
+                    dataset_path=dataset_file,
+                    git_ref=args.git_ref or args.head,
+                    git_url=git_url,
+                )
             )
-            suggestions.append(suggestion)
         except RegistryError as exc:
             warnings.append(f"Skipping '{dataset_file}': {exc}")
 
-    if args.apply and suggestions:
-        entries, use_wrapper = _load_registry(registry_path)
-        for suggestion in suggestions:
-            _upsert(entries, suggestion.to_registry_entry())
-            if args.promote_latest:
-                latest_entry = dict(suggestion.to_registry_entry())
-                latest_entry["version"] = "latest"
-                latest_entry["description"] = f"Latest {suggestion.name}"
-                _upsert(entries, latest_entry)
-        _save_registry(registry_path, entries, use_wrapper)
+    changed: list[dict[str, Any]] = []
+    if suggestions:
+        try:
+            updated_registry, changed = _compute_changes(
+                registry_path=registry_path,
+                suggestions=suggestions,
+            )
+        except RegistryError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
 
-    report = _render_report(base=args.base, head=args.head, suggestions=suggestions, warnings=warnings)
+        if args.apply:
+            _save_registry(registry_path, updated_registry)
+
+    report = _render_report(base=args.base, head=args.head, changed_datasets=changed, warnings=warnings)
 
     if args.write_report:
         Path(args.write_report).write_text(report)
 
     if args.write_json:
-        Path(args.write_json).write_text(
-            json.dumps([s.to_registry_entry() for s in suggestions], indent=2, ensure_ascii=True) + "\n"
-        )
+        Path(args.write_json).write_text(json.dumps(changed, indent=2, ensure_ascii=True) + "\n")
 
     print(report)
 
@@ -353,23 +451,15 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manage ai-prophet dataset registry entries")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_register = sub.add_parser("register", help="Register one dataset file into registry.json")
+    p_register = sub.add_parser("register", help="Register one dataset version into registry.json")
     p_register.add_argument("--dataset-path", required=True, help="Dataset JSONL path")
     p_register.add_argument("--registry", default="registry.json", help="Path to registry.json")
-    p_register.add_argument("--name", default=None, help="Dataset name (default: infer from path)")
-    p_register.add_argument("--version", default=None, help="Dataset version (default: infer from path)")
-    p_register.add_argument("--description", default=None, help="Dataset description")
     p_register.add_argument("--git-url", default=None, help="Git URL override")
     p_register.add_argument("--git-ref", default=None, help="Git ref override")
-    p_register.add_argument(
-        "--promote-latest",
-        action="store_true",
-        help="Also upsert a <name>@latest entry that points to this dataset",
-    )
     p_register.set_defaults(func=cmd_register)
 
     p_diff = sub.add_parser(
-        "from-diff", help="Detect added dataset JSONLs from git diff and suggest/apply registry updates"
+        "from-diff", help="Detect added dataset JSONLs from git diff and suggest/apply grouped registry updates"
     )
     p_diff.add_argument("--base", required=True, help="Base SHA")
     p_diff.add_argument("--head", required=True, help="Head SHA")
@@ -378,11 +468,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p_diff.add_argument("--git-ref", default=None, help="Git ref override (default: head SHA)")
     p_diff.add_argument("--write-report", default=None, help="Write markdown report to file")
     p_diff.add_argument("--write-json", default=None, help="Write JSON suggestions to file")
-    p_diff.add_argument(
-        "--promote-latest",
-        action="store_true",
-        help="Also upsert <name>@latest for each detected dataset",
-    )
     p_diff.add_argument("--apply", action="store_true", help="Apply suggestions directly to registry.json")
     p_diff.add_argument("--strict", action="store_true", help="Exit non-zero if warnings are present")
     p_diff.set_defaults(func=cmd_from_diff)

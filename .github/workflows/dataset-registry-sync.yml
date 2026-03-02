@@ -51,7 +51,6 @@ jobs:
             --base "${{ steps.range.outputs.base }}" \
             --head "${{ steps.range.outputs.head }}" \
             --registry registry.json \
-            --promote-latest \
             --write-report .registry-report.md \
             --write-json .registry-suggestions.json
 
@@ -106,7 +105,6 @@ jobs:
             --base "${{ steps.range.outputs.base }}" \
             --head "${{ steps.range.outputs.head }}" \
             --registry registry.json \
-            --promote-latest \
             --strict \
             --apply
 
