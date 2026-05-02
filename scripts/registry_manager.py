@@ -152,9 +152,18 @@ def _validate_task_row(row: dict[str, Any], *, line_no: int, where: Path) -> boo
     if not isinstance(resolved, dict):
         raise ValidationError(f"{where}:{line_no}: 'resolved_outcome' must be an object or omitted")
     value = resolved.get("value")
-    if not isinstance(value, str) or value not in outcomes:
+    if not isinstance(value, list) or not value:
         raise ValidationError(
-            f"{where}:{line_no}: resolved_outcome.value must be one of {outcomes!r}"
+            f"{where}:{line_no}: resolved_outcome.value must be a non-empty list of strings"
+        )
+    for v in value:
+        if not isinstance(v, str) or v not in outcomes:
+            raise ValidationError(
+                f"{where}:{line_no}: resolved_outcome.value entry {v!r} must be one of {outcomes!r}"
+            )
+    if len(set(value)) != len(value):
+        raise ValidationError(
+            f"{where}:{line_no}: resolved_outcome.value entries must be unique"
         )
     for opt_key in ("resolved_at", "source"):
         if opt_key in resolved and not isinstance(resolved[opt_key], str):
