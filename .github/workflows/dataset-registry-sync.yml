@@ -5,7 +5,7 @@ on:
     paths:
       - "datasets/**"
       - "registry.json"
-      - "scripts/registry_manager.py"
+      - "sdk/**"
       - ".github/workflows/dataset-registry-sync.yml"
   push:
     branches:
@@ -31,12 +31,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install SDK
+        run: pip install ./sdk
+
       - name: Validate datasets
-        run: python scripts/registry_manager.py validate --all
+        run: ai-prophet-datasets --repo-path . validate
 
       - name: Rebuild registry
         if: github.event_name == 'push'
-        run: python scripts/registry_manager.py rebuild-registry
+        run: ai-prophet-datasets --repo-path . rebuild-registry
 
       - name: Commit registry changes
         if: github.event_name == 'push'

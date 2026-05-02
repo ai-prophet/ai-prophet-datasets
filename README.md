@@ -54,14 +54,20 @@ Optional fields include `source`, `context`, `metadata`, and
 
 ```json
 "resolved_outcome": {
-  "value": "Orlando",
+  "value": ["Orlando"],
   "resolved_at": "2026-02-24T00:07:09Z",
   "source": "KXNBAGAME-26FEB22ORLLAC"
 }
 ```
 
-`value` must be one of the `outcomes` strings. If `resolved_outcome` is
-absent or `null`, the task is unresolved.
+`value` is **always a list of strings**, even when only one outcome
+resolved. Each entry must be drawn from the task's `outcomes` and
+entries must be unique. The list shape is the canonical encoding —
+single-outcome resolutions are still wrapped (`["Yes"]`, not `"Yes"`)
+so consumers don't have to branch on type. Multi-entry lists express
+multi-correct or partially-resolved questions (e.g. `["A", "C"]` for a
+"select all that apply" task). If `resolved_outcome` is absent or
+`null`, the task is unresolved.
 
 ## Registry
 
@@ -114,8 +120,8 @@ us, and would have to be rewritten on every resolution edit.
 **The registry is a derived index, not a database.** `registry.json` is
 regenerated from the tree on every push. If it ever drifts, the fix is
 to rebuild it; nothing downstream relies on registry-only state.
-Validation logic lives in one place (`scripts/registry_manager.py`) and
-is invoked by both CI and ad-hoc local runs.
+Validation logic lives in one place (the `ai-prophet-datasets` SDK
+under `sdk/`) and is invoked by both CI and ad-hoc local runs.
 
 **A "release" is a unit of fetching, not a derivative of a previous
 release.** Two releases under the same dataset (e.g. consecutive
@@ -136,19 +142,26 @@ by `release_date`), not state worth storing.
 To attach a resolved outcome to an existing task, edit only that row's
 `resolved_outcome` field in the existing `tasks.jsonl` and open a PR.
 
-## Local commands
+## SDK
+
+A Python SDK lives under `sdk/` (PyPI: `ai-prophet-datasets`). Install
+it for both reading the registry programmatically and for the local
+`validate` / `rebuild-registry` commands:
 
 ```bash
+pip install ./sdk
+
 # Validate every dataset and release in the tree
-python3 scripts/registry_manager.py validate --all
+ai-prophet-datasets --repo-path . validate
 
 # Validate a single release directory
-python3 scripts/registry_manager.py validate \
-  --release datasets/dummy/releases/2026-03-01
+ai-prophet-datasets validate --release datasets/dummy/releases/2026-03-01
 
 # Rebuild registry.json from the tree
-python3 scripts/registry_manager.py rebuild-registry
+ai-prophet-datasets --repo-path . rebuild-registry
 ```
+
+See [`sdk/README.md`](sdk/README.md) for the full Python API.
 
 ## CI automation
 
