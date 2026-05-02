@@ -208,3 +208,10 @@ __marimo__/
 
 # AI artifacts
 plans/
+# SDK build/dev artifacts
+sdk/.venv/
+sdk/build/
+sdk/dist/
+sdk/*.egg-info/
+sdk/src/*.egg-info/
+sdk/.pytest_cache/
