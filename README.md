@@ -54,14 +54,20 @@ Optional fields include `source`, `context`, `metadata`, and
 
 ```json
 "resolved_outcome": {
-  "value": "Orlando",
+  "value": ["Orlando"],
   "resolved_at": "2026-02-24T00:07:09Z",
   "source": "KXNBAGAME-26FEB22ORLLAC"
 }
 ```
 
-`value` must be one of the `outcomes` strings. If `resolved_outcome` is
-absent or `null`, the task is unresolved.
+`value` is **always a list of strings**, even when only one outcome
+resolved. Each entry must be drawn from the task's `outcomes` and
+entries must be unique. The list shape is the canonical encoding —
+single-outcome resolutions are still wrapped (`["Yes"]`, not `"Yes"`)
+so consumers don't have to branch on type. Multi-entry lists express
+multi-correct or partially-resolved questions (e.g. `["A", "C"]` for a
+"select all that apply" task). If `resolved_outcome` is absent or
+`null`, the task is unresolved.
 
 ## Registry
 
