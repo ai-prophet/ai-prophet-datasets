@@ -70,6 +70,24 @@ def test_cli_resolve_commits(repo: Path, capsys):
     assert by_id["t-001"]["resolved_outcome"]["value"] == ["Yes"]
 
 
+def test_cli_global_flag_works_after_subcommand(repo: Path, capsys):
+    """Regression: `--repo-path` after the subcommand should work too."""
+    code = main(
+        [
+            "resolve",
+            "dummy",
+            "2026-04-01",
+            "--task-id",
+            "t-001",
+            "--value",
+            "Yes",
+            "--repo-path",
+            str(repo),
+        ]
+    )
+    assert code == 0
+
+
 def test_cli_resolve_requires_repo_path(capsys):
     """`resolve` without --repo-path errors out with code 2."""
     code = main(

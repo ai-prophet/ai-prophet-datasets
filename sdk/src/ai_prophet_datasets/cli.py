@@ -106,32 +106,61 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_global_options(p: argparse.ArgumentParser, *, on_subparser: bool = False) -> None:
+    """Add the global `--repo-path` / `--repo-url` / `--branch` flags.
+
+    Attached to every subparser as well as the top-level parser so users
+    can write the flags either before or after the subcommand. On the
+    subparser version we use `argparse.SUPPRESS` so an unset subparser
+    flag doesn't overwrite a value provided at the top level.
+    """
+    default = argparse.SUPPRESS if on_subparser else None
+    p.add_argument(
+        "--repo-path",
+        default=default,
+        help="Path to a local clone (enables writes)",
+    )
+    p.add_argument(
+        "--repo-url",
+        default=default,
+        help=f"Repo URL (default: {DEFAULT_REPO_URL})",
+    )
+    p.add_argument(
+        "--branch",
+        default=default,
+        help=f"Branch name (default: {DEFAULT_BRANCH})",
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Wire up the CLI."""
     parser = argparse.ArgumentParser(prog="ai-prophet-datasets")
-    parser.add_argument("--repo-path", default=None, help="Path to a local clone (enables writes)")
-    parser.add_argument("--repo-url", default=None, help=f"Repo URL (default: {DEFAULT_REPO_URL})")
-    parser.add_argument("--branch", default=None, help=f"Branch name (default: {DEFAULT_BRANCH})")
+    _add_global_options(parser)
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_list = sub.add_parser("list", help="List datasets and releases")
+    _add_global_options(p_list, on_subparser=True)
     p_list.set_defaults(func=cmd_list)
 
     p_fetch = sub.add_parser("fetch", help="Download a release's tasks.jsonl")
+    _add_global_options(p_fetch, on_subparser=True)
     p_fetch.add_argument("dataset")
     p_fetch.add_argument("release_id")
     p_fetch.add_argument("-o", "--output", default=None, help="Output file path")
     p_fetch.set_defaults(func=cmd_fetch)
 
     p_validate = sub.add_parser("validate", help="Validate a release dir or the whole tree")
+    _add_global_options(p_validate, on_subparser=True)
     p_validate.add_argument("--release", default=None, help="Path to a release directory")
     p_validate.set_defaults(func=cmd_validate)
 
     p_rebuild = sub.add_parser("rebuild-registry", help="Rewrite registry.json from the tree")
+    _add_global_options(p_rebuild, on_subparser=True)
     p_rebuild.set_defaults(func=cmd_rebuild_registry)
 
     p_resolve = sub.add_parser("resolve", help="Set a task's resolved_outcome and commit")
+    _add_global_options(p_resolve, on_subparser=True)
     p_resolve.add_argument("dataset")
     p_resolve.add_argument("release_id")
     p_resolve.add_argument("--task-id", required=True)

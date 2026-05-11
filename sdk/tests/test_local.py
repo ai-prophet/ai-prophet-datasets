@@ -302,6 +302,81 @@ def test_delete_release(repo: Path):
     assert (repo / "datasets" / "dummy" / "dataset.json").exists()
 
 
+# ---------- registry.json freshness (dogfood regression) ----------
+
+
+def test_writes_update_registry_json(empty_repo: Path):
+    """Every write op should leave registry.json in sync with the tree.
+
+    Regression: an earlier version of the SDK only touched tasks.jsonl
+    on writes, so remote consumers (who read via registry.json) couldn't
+    see a freshly-pushed dataset until CI rebuilt the index.
+    """
+    reg = Registry(repo_path=empty_repo)
+    reg.create_dataset("new-ds", "x")
+    after_create = json.loads((empty_repo / "registry.json").read_text())
+    assert [d["name"] for d in after_create["datasets"]] == ["new-ds"]
+
+    reg.create_release(
+        dataset="new-ds",
+        release_id="r1",
+        tasks=[{"task_id": "t", "title": "Q?", "outcomes": ["A", "B"]}],
+        release_date="2026-05-02",
+        description="x",
+    )
+    after_release = json.loads((empty_repo / "registry.json").read_text())
+    releases = after_release["datasets"][0]["releases"]
+    assert releases[0]["task_count"] == 1
+    assert releases[0]["resolved_count"] == 0
+
+    reg.get_release("new-ds", "r1").set_resolved_outcome("t", value=["A"])
+    after_resolve = json.loads((empty_repo / "registry.json").read_text())
+    assert after_resolve["datasets"][0]["releases"][0]["resolved_count"] == 1
+
+
+def test_delete_release_does_not_sweep_unrelated_dirty_files(repo: Path):
+    """Regression: `Release.delete()` previously used `git add -A` and
+    bundled any unrelated dirty file into the delete commit."""
+    # Create an unrelated dirty file that should NOT be committed.
+    stray = repo / "stray-untracked-file.txt"
+    stray.write_text("do not commit me")
+
+    reg = Registry(repo_path=repo)
+    reg.get_release("dummy", "2026-04-01").delete()
+
+    # The stray file should still be on disk, untracked.
+    assert stray.exists()
+    status = subprocess.check_output(
+        ["git", "-C", str(repo), "status", "--porcelain"], text=True
+    )
+    assert "stray-untracked-file.txt" in status  # still untracked
+
+
+def test_push_uses_current_branch(repo: Path):
+    """Regression: `Registry.push()` should push the *checked-out* branch,
+    not whatever `self.branch` happens to be."""
+    # Switch off the default `main` so a mismatch could surface.
+    subprocess.run(
+        ["git", "-C", str(repo), "checkout", "-b", "feature/x"],
+        check=True,
+        capture_output=True,
+    )
+
+    reg = Registry(repo_path=repo, branch="main")  # deliberately mismatched
+    reg.get_release("dummy", "2026-04-01").set_resolved_outcome("t-001", value=["Yes"])
+    reg.push()
+
+    # Local feature/x and remote feature/x should match.
+    local = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    origin_path = repo.parent / f"origin{repo.name.replace('repo', '')}.git"
+    remote = subprocess.check_output(
+        ["git", "-C", str(origin_path), "rev-parse", "feature/x"], text=True
+    ).strip()
+    assert local == remote
+
+
 # ---------- push integration ----------
 
 

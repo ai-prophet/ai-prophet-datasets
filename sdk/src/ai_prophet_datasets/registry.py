@@ -112,7 +112,7 @@ class Registry:
         load_dataset_metadata(dataset_dir)  # sanity check
 
         message = commit_message or f"create dataset {name}"
-        return self._git_commit([dataset_json], message)
+        return self._commit_with_registry([dataset_json], message)
 
     def create_release(
         self,
@@ -170,17 +170,32 @@ class Registry:
         load_tasks(tasks_path)
 
         message = commit_message or f"add release {dataset}/{release_id}"
-        return self._git_commit([release_json, tasks_path], message)
+        return self._commit_with_registry([release_json, tasks_path], message)
+
+    def current_branch(self) -> str:
+        """Return the name of the currently checked-out local branch."""
+        self._require_local()
+        return self._git("rev-parse", "--abbrev-ref", "HEAD")
 
     def sync(self) -> None:
-        """`git pull --rebase` against `origin/<branch>`."""
+        """`git pull --rebase origin <current-branch>`.
+
+        Operates on whichever branch is checked out in the working tree,
+        not on `self.branch` (which controls remote *reads* only).
+        """
         self._require_local()
-        self._git("pull", "--rebase", "origin", self.branch)
+        self._git("pull", "--rebase", "origin", self.current_branch())
 
     def push(self) -> None:
-        """`git push origin <branch>`."""
+        """`git push origin <current-branch>`.
+
+        Pushes whatever branch is checked out in the working tree. To
+        push commits to a *different* remote branch, run `git push`
+        directly — the SDK keeps push behavior predictable by mirroring
+        the local branch name.
+        """
         self._require_local()
-        self._git("push", "origin", self.branch)
+        self._git("push", "origin", self.current_branch())
 
     def close(self) -> None:
         """Close the HTTP client if one was created."""
@@ -219,14 +234,25 @@ class Registry:
         return json.loads(self._http_get("registry.json"))
 
     def _http_get(self, repo_relative_path: str) -> str:
-        """Fetch a file from raw.githubusercontent.com at the configured branch."""
+        """Fetch a file via the GitHub Contents API at the configured branch.
+
+        We deliberately avoid `raw.githubusercontent.com`: it serves
+        responses through a CDN that caches for several minutes, so a
+        freshly-pushed branch looks stale for a while. The Contents API
+        with `Accept: application/vnd.github.raw` returns the file body
+        directly with no base64 wrapping, and reflects pushes within
+        seconds. Unauthenticated callers get 60 requests/hour, which is
+        comfortably above any normal read workload here.
+        """
         owner, repo = self._owner_repo()
-        url = (
-            f"https://raw.githubusercontent.com/{owner}/{repo}/"
-            f"{self.branch}/{repo_relative_path}"
-        )
+        url = f"https://api.github.com/repos/{owner}/{repo}/contents/{repo_relative_path}"
         client = self._client()
-        response = client.get(url, timeout=self._http_timeout)
+        response = client.get(
+            url,
+            params={"ref": self.branch},
+            headers={"Accept": "application/vnd.github.raw"},
+            timeout=self._http_timeout,
+        )
         response.raise_for_status()
         return response.text
 
@@ -259,6 +285,25 @@ class Registry:
             )
         return proc.stdout.strip()
 
+    def _rebuild_registry_file(self) -> Path:
+        """Regenerate `registry.json` from the local tree. Returns its path.
+
+        Called by every write op so committed snapshots are internally
+        consistent — anyone reading the repo at any sha sees a registry
+        that matches the tree, without depending on CI to catch up.
+        """
+        assert self.repo_path is not None
+        payload = validate_tree(self.repo_path / "datasets")
+        registry_path = self.repo_path / "registry.json"
+        text = json.dumps(payload, indent=2, ensure_ascii=True) + "\n"
+        registry_path.write_text(text)
+        return registry_path
+
+    def _commit_with_registry(self, paths: list[Path], message: str) -> str:
+        """Refresh `registry.json`, then commit it alongside `paths`."""
+        registry_path = self._rebuild_registry_file()
+        return self._git_commit([*paths, registry_path], message)
+
     def _git_commit(self, paths: list[Path], message: str) -> str:
         """Stage `paths` and commit with `message`. Returns the new commit sha.
 
@@ -277,21 +322,6 @@ class Registry:
             return self._git("rev-parse", "HEAD")
         self._git("commit", "-m", message)
         return self._git("rev-parse", "HEAD")
-
-    def _git_commit_all(self, message: str) -> str:
-        """Stage every dirty path under the repo and commit."""
-        assert self.repo_path is not None
-        self._git("add", "-A")
-        diff = subprocess.run(
-            ["git", "-C", str(self.repo_path), "diff", "--cached", "--quiet"],
-            capture_output=True,
-            text=True,
-        )
-        if diff.returncode == 0:
-            return self._git("rev-parse", "HEAD")
-        self._git("commit", "-m", message)
-        return self._git("rev-parse", "HEAD")
-
 
 class Dataset:
     """A named series of releases."""
@@ -437,7 +467,7 @@ class Release:
         message = commit_message or (
             f"resolve {len(updates)} task(s) in {self.dataset_name}/{self.release_id}"
         )
-        return self._registry._git_commit([full_path], message)
+        return self._registry._commit_with_registry([full_path], message)
 
     def delete_task(self, task_id: str, *, commit_message: str | None = None) -> str:
         """Remove one task row from the release. One commit."""
@@ -460,7 +490,7 @@ class Release:
         message = commit_message or (
             f"remove task {task_id} from {self.dataset_name}/{self.release_id}"
         )
-        return self._registry._git_commit([full_path], message)
+        return self._registry._commit_with_registry([full_path], message)
 
     def delete(self, *, commit_message: str | None = None) -> str:
         """Remove the entire release directory. One commit."""
@@ -473,13 +503,16 @@ class Release:
         if not release_dir.is_dir():
             raise FileNotFoundError(f"release directory missing: {release_dir}")
 
-        # `git rm -r` stages the deletion in one shot.
+        # `git rm -r` stages the directory removal; we only need to also
+        # stage the regenerated registry.json. Using a targeted commit
+        # (not `git add -A`) avoids sweeping in any unrelated dirty files.
         rel = release_dir.relative_to(self._registry.repo_path).as_posix()
         self._registry._git("rm", "-r", "--", rel)
+        registry_path = self._registry._rebuild_registry_file()
         message = commit_message or (
             f"delete release {self.dataset_name}/{self.release_id}"
         )
-        return self._registry._git_commit_all(message)
+        return self._registry._git_commit([registry_path], message)
 
     def __repr__(self) -> str:
         return (

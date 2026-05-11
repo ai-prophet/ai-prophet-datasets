@@ -106,10 +106,7 @@ def make_repo(tmp_path: Path) -> Iterator[callable]:
         _git(repo, "config", "user.name", "Test")
         _git(repo, "config", "commit.gpgsign", "false")
 
-        if datasets:
-            for spec in datasets:
-                _seed_dataset(repo, **spec)
-        else:
+        if datasets is None:
             _seed_dataset(
                 repo,
                 name="dummy",
@@ -117,6 +114,9 @@ def make_repo(tmp_path: Path) -> Iterator[callable]:
                 release_id="2026-04-01",
                 release_date="2026-04-01",
             )
+        else:
+            for spec in datasets:
+                _seed_dataset(repo, **spec)
 
         # Always seed an empty registry so locals can rebuild it.
         (repo / "registry.json").write_text(json.dumps({"datasets": []}, indent=2) + "\n")

@@ -24,11 +24,13 @@ def _make_registry_with_files(files: dict[str, str]) -> Registry:
     """
 
     def handler(request: httpx.Request) -> httpx.Response:
-        # URL: https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>
-        parts = request.url.path.lstrip("/").split("/", 3)
-        if len(parts) < 4:
+        # URL: https://api.github.com/repos/<owner>/<repo>/contents/<path>?ref=<branch>
+        path = request.url.path
+        marker = "/contents/"
+        idx = path.find(marker)
+        if idx < 0:
             return httpx.Response(404)
-        repo_relative = parts[3]
+        repo_relative = path[idx + len(marker):]
         if repo_relative not in files:
             return httpx.Response(404, text=f"missing: {repo_relative}")
         return httpx.Response(200, text=files[repo_relative])
