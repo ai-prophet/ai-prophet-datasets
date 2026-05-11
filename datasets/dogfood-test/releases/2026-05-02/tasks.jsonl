@@ -1,2 +1,2 @@
-{"task_id": "rain-tomorrow", "title": "Will it rain in Chicago tomorrow?", "outcomes": ["Yes", "No"], "resolved_outcome": {"value": ["No"], "source": "weather.gov-correction"}}
+{"task_id": "rain-tomorrow", "title": "Will it rain in Chicago tomorrow?", "outcomes": ["Yes", "No"], "resolved_outcome": {"value": ["Yes"], "source": "final-call"}}
 {"task_id": "multi-correct", "title": "Which teams will make playoffs?", "outcomes": ["Bulls", "Celtics", "Lakers", "Warriors"], "resolved_outcome": {"value": ["Celtics", "Lakers"], "source": "nba.com"}}
