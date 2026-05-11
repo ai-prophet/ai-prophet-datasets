@@ -1,3 +1,2 @@
 {"task_id": "rain-tomorrow", "title": "Will it rain in Chicago tomorrow?", "outcomes": ["Yes", "No"], "resolved_outcome": {"value": ["Yes"], "resolved_at": "2026-05-02T12:00:00Z", "source": "weather.gov"}}
-{"task_id": "snow-tomorrow", "title": "Will it snow in Chicago tomorrow?", "outcomes": ["Yes", "No"], "resolved_outcome": {"value": ["No"], "source": "weather.gov"}}
 {"task_id": "multi-correct", "title": "Which teams will make playoffs?", "outcomes": ["Bulls", "Celtics", "Lakers", "Warriors"], "resolved_outcome": {"value": ["Celtics", "Lakers"], "source": "nba.com"}}
