@@ -3,16 +3,7 @@
     {
       "name": "dogfood-test",
       "description": "SDK dog-food test dataset",
-      "releases": [
-        {
-          "id": "2026-05-02",
-          "release_date": "2026-05-02",
-          "status": "open",
-          "task_count": 2,
-          "resolved_count": 2,
-          "path": "datasets/dogfood-test/releases/2026-05-02/tasks.jsonl"
-        }
-      ]
+      "releases": []
     },
     {
       "name": "dummy",
