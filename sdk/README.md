@@ -73,6 +73,12 @@ ai-prophet-datasets --repo-path . resolve hackathon-day 2026-05-02 \
     --task-id evt-001 --value Yes --source weather.gov
 ```
 
+## Detailed docs
+
+For the full programmatic API, workflow recipes (hackathon publish
+flow, resolution-bot pattern), concurrency handling, validation rules,
+and error reference, see [`docs.md`](docs.md).
+
 ## What this SDK does
 
 * **Reads** dataset metadata, release metadata, and task rows — locally
