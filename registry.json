@@ -35,6 +35,14 @@
       "description": "Hackathon sample: three category-themed releases of unresolved forecasting tasks.",
       "releases": [
         {
+          "id": "economics",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 13,
+          "resolved_count": 0,
+          "path": "datasets/hackathon-categories/releases/economics/tasks.jsonl"
+        },
+        {
           "id": "entertainment",
           "release_date": "2026-05-15",
           "status": "open",
