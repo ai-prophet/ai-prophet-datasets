@@ -31,7 +31,16 @@
     {
       "name": "sample-resolved",
       "description": "Sample dataset of forecasting tasks that have already resolved, drawn from a wide topic mix \u2014 tennis and cricket matches, top-flight football championships (Ligue 1, La Liga, Liga Portugal, Serie A), NBA playoff series, NHL Calder Trophy, entertainment awards (Netflix Roast, Tournament of Champions, Survivor, Masked Singer), and elections (US primaries, Hungary PM, Colombia Senate, SCOTUS vote counts). Useful as a worked example of the closed-release shape and the canonical `resolved_outcome.value` list encoding, including a handful of multi-winner rows.",
-      "releases": []
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "closed",
+          "task_count": 26,
+          "resolved_count": 26,
+          "path": "datasets/sample-resolved/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
     },
     {
       "name": "sample-sports",
