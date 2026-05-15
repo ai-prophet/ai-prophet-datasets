@@ -3,7 +3,16 @@
     {
       "name": "sample-sports",
       "description": "Sample dataset of sports forecasting tasks \u2014 NBA / MLB playoff games, top-flight league title and top-4 races, ATP/WTA tennis matches, and end-of-season awards. All tasks are unresolved at publish time and are intended as a worked example of an open release covering a single topic with a mix of binary and multi-outcome questions.",
-      "releases": []
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 16,
+          "resolved_count": 0,
+          "path": "datasets/sample-sports/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
     }
   ]
 }
