@@ -1,6 +1,11 @@
 {
   "datasets": [
     {
+      "name": "sample-economics",
+      "description": "Sample dataset of macro / economics forecasting tasks \u2014 US CPI prints, eurozone GDP flash estimates, central-bank policy rate decisions (Fed, BoJ, BoC, RBA), US Treasury yields, and gas prices on Election Day. All tasks are unresolved at publish time and demonstrate how range-bucket questions look in the task schema (each numeric range is its own outcome string).",
+      "releases": []
+    },
+    {
       "name": "sample-entertainment",
       "description": "Sample dataset of entertainment forecasting tasks \u2014 awards (Eurovision, ACM, Crunchyroll Anime Awards, Emmys), Netflix and Spotify chart performance, scheduled music and game releases. All tasks are unresolved at publish time and showcase pop-culture questions with a wide outcome space (often 5\u201340 candidates).",
       "releases": [
