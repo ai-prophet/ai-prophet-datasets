@@ -63,7 +63,16 @@
     {
       "name": "hackathon-resolved-mix",
       "description": "Hackathon sample: one release of mixed-category forecasting tasks, all already resolved.",
-      "releases": []
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "closed",
+          "task_count": 26,
+          "resolved_count": 26,
+          "path": "datasets/hackathon-resolved-mix/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
     },
     {
       "name": "prophet-recent",
