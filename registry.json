@@ -33,7 +33,16 @@
     {
       "name": "hackathon-categories",
       "description": "Hackathon sample: three category-themed releases of unresolved forecasting tasks.",
-      "releases": []
+      "releases": [
+        {
+          "id": "sports",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 16,
+          "resolved_count": 0,
+          "path": "datasets/hackathon-categories/releases/sports/tasks.jsonl"
+        }
+      ]
     },
     {
       "name": "prophet-recent",
