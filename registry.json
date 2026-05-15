@@ -1,68 +1,36 @@
 {
   "datasets": [
     {
-      "name": "dummy",
-      "description": "Dummy benchmark dataset",
+      "name": "sample-economics",
+      "description": "Sample dataset of macro / economics forecasting tasks \u2014 US CPI prints, eurozone GDP flash estimates, central-bank policy rate decisions (Fed, BoJ, BoC, RBA), US Treasury yields, and gas prices on Election Day. All tasks are unresolved at publish time and demonstrate how range-bucket questions look in the task schema (each numeric range is its own outcome string).",
       "releases": [
         {
-          "id": "2026-03-03",
-          "release_date": "2026-03-03",
-          "status": "open",
-          "task_count": 3,
-          "resolved_count": 0,
-          "path": "datasets/dummy/releases/2026-03-03/tasks.jsonl"
-        },
-        {
-          "id": "2026-03-02",
-          "release_date": "2026-03-02",
-          "status": "open",
-          "task_count": 3,
-          "resolved_count": 0,
-          "path": "datasets/dummy/releases/2026-03-02/tasks.jsonl"
-        },
-        {
-          "id": "2026-03-01",
-          "release_date": "2026-03-01",
-          "status": "open",
-          "task_count": 3,
-          "resolved_count": 0,
-          "path": "datasets/dummy/releases/2026-03-01/tasks.jsonl"
-        }
-      ]
-    },
-    {
-      "name": "hackathon-categories",
-      "description": "Hackathon sample: three category-themed releases of unresolved forecasting tasks.",
-      "releases": [
-        {
-          "id": "economics",
+          "id": "v1.0.0",
           "release_date": "2026-05-15",
           "status": "open",
           "task_count": 13,
           "resolved_count": 0,
-          "path": "datasets/hackathon-categories/releases/economics/tasks.jsonl"
-        },
-        {
-          "id": "entertainment",
-          "release_date": "2026-05-15",
-          "status": "open",
-          "task_count": 13,
-          "resolved_count": 0,
-          "path": "datasets/hackathon-categories/releases/entertainment/tasks.jsonl"
-        },
-        {
-          "id": "sports",
-          "release_date": "2026-05-15",
-          "status": "open",
-          "task_count": 16,
-          "resolved_count": 0,
-          "path": "datasets/hackathon-categories/releases/sports/tasks.jsonl"
+          "path": "datasets/sample-economics/releases/v1.0.0/tasks.jsonl"
         }
       ]
     },
     {
-      "name": "hackathon-resolved-mix",
-      "description": "Hackathon sample: one release of mixed-category forecasting tasks, all already resolved.",
+      "name": "sample-entertainment",
+      "description": "Sample dataset of entertainment forecasting tasks \u2014 awards (Eurovision, ACM, Crunchyroll Anime Awards, Emmys), Netflix and Spotify chart performance, scheduled music and game releases. All tasks are unresolved at publish time and showcase pop-culture questions with a wide outcome space (often 5\u201340 candidates).",
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 13,
+          "resolved_count": 0,
+          "path": "datasets/sample-entertainment/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
+    },
+    {
+      "name": "sample-resolved",
+      "description": "Sample dataset of forecasting tasks that have already resolved, drawn from a wide topic mix \u2014 tennis and cricket matches, top-flight football championships (Ligue 1, La Liga, Liga Portugal, Serie A), NBA playoff series, NHL Calder Trophy, entertainment awards (Netflix Roast, Tournament of Champions, Survivor, Masked Singer), and elections (US primaries, Hungary PM, Colombia Senate, SCOTUS vote counts). Useful as a worked example of the closed-release shape and the canonical `resolved_outcome.value` list encoding, including a handful of multi-winner rows.",
       "releases": [
         {
           "id": "v1.0.0",
@@ -70,21 +38,21 @@
           "status": "closed",
           "task_count": 26,
           "resolved_count": 26,
-          "path": "datasets/hackathon-resolved-mix/releases/v1.0.0/tasks.jsonl"
+          "path": "datasets/sample-resolved/releases/v1.0.0/tasks.jsonl"
         }
       ]
     },
     {
-      "name": "prophet-recent",
-      "description": "A selection of recent Prophet Arena resolved tasks with outcomes <= 2",
+      "name": "sample-sports",
+      "description": "Sample dataset of sports forecasting tasks \u2014 NBA / MLB playoff games, top-flight league title and top-4 races, ATP/WTA tennis matches, and end-of-season awards. All tasks are unresolved at publish time and are intended as a worked example of an open release covering a single topic with a mix of binary and multi-outcome questions.",
       "releases": [
         {
           "id": "v1.0.0",
-          "release_date": "2026-02-24",
-          "status": "closed",
-          "task_count": 83,
-          "resolved_count": 31,
-          "path": "datasets/prophet-recent/releases/v1.0.0/tasks.jsonl"
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 16,
+          "resolved_count": 0,
+          "path": "datasets/sample-sports/releases/v1.0.0/tasks.jsonl"
         }
       ]
     }

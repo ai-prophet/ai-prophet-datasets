@@ -1,0 +1,4 @@
+{
+  "name": "sample-entertainment",
+  "description": "Sample dataset of entertainment forecasting tasks \u2014 awards (Eurovision, ACM, Crunchyroll Anime Awards, Emmys), Netflix and Spotify chart performance, scheduled music and game releases. All tasks are unresolved at publish time and showcase pop-culture questions with a wide outcome space (often 5\u201340 candidates)."
+}

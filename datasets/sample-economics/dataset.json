@@ -1,0 +1,4 @@
+{
+  "name": "sample-economics",
+  "description": "Sample dataset of macro / economics forecasting tasks \u2014 US CPI prints, eurozone GDP flash estimates, central-bank policy rate decisions (Fed, BoJ, BoC, RBA), US Treasury yields, and gas prices on Election Day. All tasks are unresolved at publish time and demonstrate how range-bucket questions look in the task schema (each numeric range is its own outcome string)."
+}
