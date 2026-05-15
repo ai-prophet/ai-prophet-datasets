@@ -61,6 +61,11 @@
       ]
     },
     {
+      "name": "hackathon-resolved-mix",
+      "description": "Hackathon sample: one release of mixed-category forecasting tasks, all already resolved.",
+      "releases": []
+    },
+    {
       "name": "prophet-recent",
       "description": "A selection of recent Prophet Arena resolved tasks with outcomes <= 2",
       "releases": [
