@@ -3,7 +3,16 @@
     {
       "name": "sample-entertainment",
       "description": "Sample dataset of entertainment forecasting tasks \u2014 awards (Eurovision, ACM, Crunchyroll Anime Awards, Emmys), Netflix and Spotify chart performance, scheduled music and game releases. All tasks are unresolved at publish time and showcase pop-culture questions with a wide outcome space (often 5\u201340 candidates).",
-      "releases": []
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 13,
+          "resolved_count": 0,
+          "path": "datasets/sample-entertainment/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
     },
     {
       "name": "sample-sports",
