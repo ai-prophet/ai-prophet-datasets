@@ -31,6 +31,11 @@
       ]
     },
     {
+      "name": "hackathon-categories",
+      "description": "Hackathon sample: three category-themed releases of unresolved forecasting tasks.",
+      "releases": []
+    },
+    {
       "name": "prophet-recent",
       "description": "A selection of recent Prophet Arena resolved tasks with outcomes <= 2",
       "releases": [
