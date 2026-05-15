@@ -31,6 +31,50 @@
       ]
     },
     {
+      "name": "hackathon-categories",
+      "description": "Hackathon sample: three category-themed releases of unresolved forecasting tasks.",
+      "releases": [
+        {
+          "id": "economics",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 13,
+          "resolved_count": 0,
+          "path": "datasets/hackathon-categories/releases/economics/tasks.jsonl"
+        },
+        {
+          "id": "entertainment",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 13,
+          "resolved_count": 0,
+          "path": "datasets/hackathon-categories/releases/entertainment/tasks.jsonl"
+        },
+        {
+          "id": "sports",
+          "release_date": "2026-05-15",
+          "status": "open",
+          "task_count": 16,
+          "resolved_count": 0,
+          "path": "datasets/hackathon-categories/releases/sports/tasks.jsonl"
+        }
+      ]
+    },
+    {
+      "name": "hackathon-resolved-mix",
+      "description": "Hackathon sample: one release of mixed-category forecasting tasks, all already resolved.",
+      "releases": [
+        {
+          "id": "v1.0.0",
+          "release_date": "2026-05-15",
+          "status": "closed",
+          "task_count": 26,
+          "resolved_count": 26,
+          "path": "datasets/hackathon-resolved-mix/releases/v1.0.0/tasks.jsonl"
+        }
+      ]
+    },
+    {
       "name": "prophet-recent",
       "description": "A selection of recent Prophet Arena resolved tasks with outcomes <= 2",
       "releases": [
